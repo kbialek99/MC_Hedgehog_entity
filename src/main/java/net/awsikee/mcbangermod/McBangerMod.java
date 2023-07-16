@@ -1,5 +1,9 @@
 package net.awsikee.mcbangermod;
 
+import net.awsikee.mcbangermod.block.ModBlocks;
+import net.awsikee.mcbangermod.item.ModCreativeModTabs;
+import net.awsikee.mcbangermod.item.ModItems;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
@@ -22,6 +26,9 @@ public class McBangerMod
     {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
+        ModCreativeModTabs.register(modEventBus);
+        ModItems.register(modEventBus);
+        ModBlocks.register(modEventBus);
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
 
@@ -39,8 +46,11 @@ public class McBangerMod
     }
 
     // Add the example block item to the building blocks tab
-    private void addCreative(BuildCreativeModeTabContentsEvent event)
-    {
+    private void addCreative(BuildCreativeModeTabContentsEvent event){
+        if(event.getTabKey() == CreativeModeTabs.INGREDIENTS){
+            event.accept(ModItems.RUBY);
+            event.accept(ModItems.ROUGH_RUBY);
+        }
 
     }
 
