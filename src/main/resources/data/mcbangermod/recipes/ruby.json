@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:stonecutting",
+  "count": 1,
+  "ingredient": {
+    "item": "mcbangermod:rough_ruby"
+  },
+  "result": "mcbangermod:ruby"
+}
