@@ -36,7 +36,7 @@ public class HedgehogEntity extends Animal implements GeoEntity {
 
     public static AttributeSupplier setAttributes() {
         return Animal.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 10D)
+                .add(Attributes.MAX_HEALTH, 3D)
                 .add(Attributes.ATTACK_DAMAGE, 2)
                 .add(Attributes.ATTACK_SPEED, 1.0f)
                 .add(Attributes.MOVEMENT_SPEED,0.2f ).build();
