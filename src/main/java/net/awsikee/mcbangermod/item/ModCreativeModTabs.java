@@ -14,13 +14,9 @@ public class ModCreativeModTabs {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, McBangerMod.MOD_ID);
     public static  final RegistryObject<CreativeModeTab> MCBANGER_TAB = CREATIVE_MODE_TABS.register("mcbanger_tab",
-            () -> CreativeModeTab.builder().icon(() -> new ItemStack(ModItems.RUBY.get()))
+            () -> CreativeModeTab.builder().icon(() -> new ItemStack(ModItems.HEDGEHOG_SPAWN_EGG.get()))
                     .title(Component.translatable("creativetab.mcbanger_tab"))
                     .displayItems(((pParameters, pOutput) -> {
-                        pOutput.accept(ModItems.RUBY.get());
-                        pOutput.accept(ModItems.ROUGH_RUBY.get());
-                        pOutput.accept(ModBlocks.RUBY_ORE.get());
-                        pOutput.accept(ModBlocks.RUBY_BLOCK.get());
                         pOutput.accept(ModItems.HEDGEHOG_SPAWN_EGG.get());
 
                     }))
