@@ -1,6 +1,7 @@
-package net.awsikee.mcbangermod.entity.custom;
+package net.awsikee.mcbangermod.entity.ai;
 
 import net.awsikee.mcbangermod.entity.ModEntityTypes;
+import net.awsikee.mcbangermod.entity.custom.HedgehogEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.Entity;
@@ -18,7 +19,7 @@ import java.util.EnumSet;
 
 public class CurlHedgehogGoal extends Goal {
     public static final int WATER_CHECK_DISTANCE_VERTICAL = 1;
-    protected final HedgehogEntity mob;
+    protected final HedgehogEntity mob; 
     protected double speedModifier;
     protected double posX;
     protected double posY;
@@ -43,12 +44,14 @@ public class CurlHedgehogGoal extends Goal {
      this.mob.setFreezeTicks(0);
      this.setSpeedModifier(0);
      this.isCurled = true;
+     this.mob.setAttacked(true);
 
     }
     private void uncurlFromABall()
     {
         System.out.println("Called uncurl function");
         this.mob.setNoAi(false);
+        this.mob.setAttacked(false);
 
     }
 

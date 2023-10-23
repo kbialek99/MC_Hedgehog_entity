@@ -1,37 +1,33 @@
 package net.awsikee.mcbangermod.entity.custom;
 
 import net.awsikee.mcbangermod.entity.ModEntityTypes;
+import net.awsikee.mcbangermod.entity.ai.CurlHedgehogGoal;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializer;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.AnimationState;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.*;
-import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.core.animatable.GeoAnimatable;
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.*;
-import software.bernie.geckolib.core.object.PlayState;
-import software.bernie.geckolib.util.GeckoLibUtil;
 
-import java.util.stream.Stream;
+public class HedgehogEntity extends Animal {
 
-public class HedgehogEntity extends Animal implements GeoEntity {
-
-    private final AnimatableInstanceCache geoCache = new SingletonAnimatableInstanceCache(this);
+    private static final EntityDataAccessor<Boolean> ATTACKED =
+            SynchedEntityData.defineId(HedgehogEntity.class, EntityDataSerializers.BOOLEAN);
     private int freezeTicks;
     private final int maxFreezeTicks;
 
@@ -40,6 +36,68 @@ public class HedgehogEntity extends Animal implements GeoEntity {
         this.maxFreezeTicks = 100;
     }
 
+    public final  AnimationState idleAnimationState = new AnimationState();
+    private int idleAnimationTimeout = 0;
+    public final  AnimationState walkingAnimationState = new AnimationState();
+    private int isAttackedTimeout = 0;
+    public final  AnimationState attackedAnimationState = new AnimationState();
+
+    @Override
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(ATTACKED, false);
+    }
+    public void setAttacked(boolean attacked){
+        this.entityData.set(ATTACKED,attacked);
+    }
+    public boolean isAttacked(){
+        return this.entityData.get(ATTACKED);
+    }
+    @Override
+    public void tick()
+    {
+        super.tick();
+        if(this.level().isClientSide())
+        {
+            setupAnimationStates();
+        }
+    }
+    private void  setupAnimationStates(){
+
+        if(this.idleAnimationTimeout <= 0){
+            this.idleAnimationTimeout = this.random.nextInt(40) + 80;
+
+        }else{
+            --this.idleAnimationTimeout;
+        }
+
+        if(this.isAttacked() && isAttackedTimeout <= 0)
+        {
+           isAttackedTimeout = this.maxFreezeTicks*2;
+           attackedAnimationState.start(this.tickCount);
+        }else {
+            --this.isAttackedTimeout;
+
+        }
+
+        if(!this.isAttacked())
+        {
+            attackedAnimationState.stop();
+        }
+
+    }
+    @Override
+    protected void updateWalkAnimation(float pPartialTick)
+    {
+        float f;
+        if(this.getPose() == Pose.STANDING)
+        {
+            f = Math.min(pPartialTick * 6F, 1f);
+        }else{
+            f = 0f;
+        }
+        this.walkAnimation.update(f, 0.2f);
+    }
     public void setFreezeTicks(int freezeTicks) {
         this.freezeTicks = freezeTicks;
     }
@@ -52,13 +110,12 @@ public class HedgehogEntity extends Animal implements GeoEntity {
         return this.maxFreezeTicks;
     }
 
-    public static AttributeSupplier setAttributes() {
+    public static AttributeSupplier.Builder  createAttributes() {
         return Animal.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 3D)
                 .add(Attributes.ATTACK_DAMAGE, 2)
                 .add(Attributes.ATTACK_SPEED, 1.0f)
-                .add(Attributes.MOVEMENT_SPEED,0.2f ).build();
-
+                .add(Attributes.MOVEMENT_SPEED,0.2f );
     }
 
     @Override
@@ -75,58 +132,38 @@ public class HedgehogEntity extends Animal implements GeoEntity {
         return ModEntityTypes.HEDGEHOG.get().create(level);
     }
 
-    @Override
-    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(this, "controller", 0, this::changeEntityState));
-        //controllers.add(new AnimationController<>(this, "onEventTrigger", 0, this::changeEntityState));
 
-    }
 
-    protected <T extends HedgehogEntity> PlayState changeEntityState(AnimationState<T> event) {
-        Stream<WrappedGoal> runningGoals = this.goalSelector.getRunningGoals();
-        runningGoals.forEach(wrappedGoal -> {
-            System.out.println(" checking goals");
-            Goal goal = wrappedGoal.getGoal();
-            if (goal instanceof CurlHedgehogGoal) {
-                CurlHedgehogGoal customGoal = (CurlHedgehogGoal) goal;
-                if (customGoal.isCurled()) {
-                    // Take action when the goal is triggered
-                    System.out.println(" change anim curl function called.");
-                    event.getController().setAnimation(RawAnimation.begin().then("curl", Animation.LoopType.HOLD_ON_LAST_FRAME));
-                    return PlayState.CONTINUE;
-                }
-                else
-                {
-                    System.out.println(" change anim uncurl function called.");
-
-                    event.getController().setAnimation(RawAnimation.begin().then("uncurl", Animation.LoopType.PLAY_ONCE));
-                    return PlayState.CONTINUE;
-                }
-            }
-        });
-        if (event.isMoving()) {
-                event.getController().setAnimation(RawAnimation.begin().then("walk", Animation.LoopType.LOOP));
-            }
-            event.getController().setAnimation(RawAnimation.begin().then("idle", Animation.LoopType.LOOP));
-
-        return PlayState.CONTINUE;
-
-    }
-//    protected <T extends HedgehogEntity> PlayState predicate(AnimationState<T> event) {
+//    protected <T extends HedgehogEntity> PlayState changeEntityState(AnimationState<T> event) {
+//        Stream<WrappedGoal> runningGoals = this.goalSelector.getRunningGoals();
+//        runningGoals.forEach(wrappedGoal -> {
+//            System.out.println(" checking goals");
+//            Goal goal = wrappedGoal.getGoal();
+//            if (goal instanceof CurlHedgehogGoal) {
+//                CurlHedgehogGoal customGoal = (CurlHedgehogGoal) goal;
+//                if (customGoal.isCurled()) {
+//                    // Take action when the goal is triggered
+//                    System.out.println(" change anim curl function called.");
+//                    event.getController().setAnimation(RawAnimation.begin().then("curl", Animation.LoopType.HOLD_ON_LAST_FRAME));
+//                    return PlayState.CONTINUE;
+//                }
+//                else
+//                {
+//                    System.out.println(" change anim uncurl function called.");
+//
+//                    event.getController().setAnimation(RawAnimation.begin().then("uncurl", Animation.LoopType.PLAY_ONCE));
+//                    return PlayState.CONTINUE;
+//                }
+//            }
+//        });
 //        if (event.isMoving()) {
-//            event.getController().setAnimation(RawAnimation.begin().then("walk", Animation.LoopType.LOOP));
-//            return PlayState.CONTINUE;
-//        }
-//        event.getController().setAnimation(RawAnimation.begin().then("idle", Animation.LoopType.LOOP));
+//                event.getController().setAnimation(RawAnimation.begin().then("walk", Animation.LoopType.LOOP));
+//            }
+//            event.getController().setAnimation(RawAnimation.begin().then("idle", Animation.LoopType.LOOP));
+//
 //        return PlayState.CONTINUE;
 //
 //    }
-
-    @Override
-    public AnimatableInstanceCache getAnimatableInstanceCache() {
-        return this.geoCache;
-    }
-
 
 
     protected void playStepSound(BlockPos pos, BlockState blockIn) {
