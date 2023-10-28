@@ -1,0 +1,15 @@
+{
+  "type": "mcbangermod:ruby_block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "mcbangermod:ruby_block"
+        }
+      ]
+
+    }
+  ]
+}
